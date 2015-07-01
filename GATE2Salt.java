@@ -1,8 +1,9 @@
-package de.hu_berlin.german.korpling.saltnpepper.pepperModules.sampleModules;
+package gate.salt;
 
 import gate.Annotation;
 import gate.AnnotationSet;
 import gate.Document;
+import gate.Corpus;
 import gate.annotation.AnnotationSetImpl;
 import gate.util.InvalidOffsetException;
 
@@ -13,7 +14,11 @@ import org.eclipse.emf.common.util.EList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.eclipse.emf.common.util.URI;
+
 import de.hu_berlin.german.korpling.saltnpepper.salt.SaltFactory;
+import de.hu_berlin.german.korpling.saltnpepper.salt.saltCommon.sCorpusStructure.SCorpusGraph;
+import de.hu_berlin.german.korpling.saltnpepper.salt.saltCommon.sCorpusStructure.SCorpus;
 import de.hu_berlin.german.korpling.saltnpepper.salt.saltCommon.sCorpusStructure.SDocument;
 import de.hu_berlin.german.korpling.saltnpepper.salt.saltCommon.sDocumentStructure.SDataSourceSequence;
 import de.hu_berlin.german.korpling.saltnpepper.salt.saltCommon.sDocumentStructure.SSpan;
@@ -24,7 +29,7 @@ import de.hu_berlin.german.korpling.saltnpepper.salt.saltCore.SLayer;
 
 public class GATE2Salt {
 	// this is a logger, for recording messages during program process, like debug messages
-	private static final Logger logger = LoggerFactory.getLogger(GATEImporter.MODULE_NAME);
+	private static final Logger logger = LoggerFactory.getLogger("GATE2Salt-Mapper"); 
 	
 	/** The GATE document to be mapped **/
 	private Document gateDocument= null;
@@ -115,6 +120,29 @@ public class GATE2Salt {
 
 	public void setUseAsToken(String useAsToken) {
 		this.useAsToken = useAsToken;
+	}
+
+	public SCorpusGraph mapCorpus(Corpus gateCorpus){
+
+		SCorpusGraph sCorpusGraph= SaltFactory.eINSTANCE.createSCorpusGraph();
+		SCorpus sCorpus = sCorpusGraph.createSCorpus(URI.createURI("salt:/" + gateCorpus.getName())).get(0);
+
+		// map all corpus features to corpus meta data
+		for (Object key: gateCorpus.getFeatures().keySet()){
+			Object value= gateCorpus.getFeatures().get(key);
+			if (value!= null){
+				sCorpus.createSMetaAnnotation(null, key.toString(), value.toString());
+			}
+		}
+
+		// map all Documents
+		for (Document gateDocument: gateCorpus) {
+			setGateDocument(gateDocument);
+			setsDocument(sCorpusGraph.createSDocument(sCorpus, gateDocument.getName()));
+			this.map();
+		}
+
+		return sCorpusGraph;
 	}
 
 	public SDocument map(){
